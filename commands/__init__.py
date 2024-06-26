@@ -8,13 +8,15 @@ from .cleanChamfer import entry as cleanChamfer
 from .addHolder import entry as addHolder
 from .colorHoles import entry as colorHoles
 from .updateTools import entry as updateTools
+from .syncLibrary import entry as syncLibrary
 
 commands = [
     updateDocSettings,
     cleanChamfer,
     addHolder,
     colorHoles,
-    updateTools
+    updateTools,
+    syncLibrary
 ]
 
 default_settings: dict = {}
