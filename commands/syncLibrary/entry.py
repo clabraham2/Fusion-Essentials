@@ -107,14 +107,15 @@ def command_execute(args: adsk.core.CommandEventArgs):
             for sourceTool in sourceLibrary:
                 if toolComment == sourceTool.parameters.itemByName('tool_comment').value.value:
                     for toolParameter in targetTool.parameters:
-                        if toolParameter.name == 'tool_assemblyGaugeLength': #best to just update body length
+                        skipParameters = [] #'tool_assemblyGaugeLength'
+                        if toolParameter.name in skipParameters :
                             continue
                         try:
                             targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
                         except:
                             futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + toolComment + ' TO ' + sourceTool.parameters.itemByName(toolParameter.name).value.value)
                             pass
-                    futil.log(toolComment + ' COMPLETE')
+                    futil.log(toolComment + ' PARAMETERS COMPLETE')
                     for sourceToolPreset in sourceTool.presets:
                         if not targetTool.presets.itemsByName(sourceToolPreset.name):
                             newPreset = targetTool.presets.add()
@@ -122,6 +123,16 @@ def command_execute(args: adsk.core.CommandEventArgs):
                             for parameter in sourceToolPreset.parameters:
                                 newPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
                             futil.log(sourceToolPreset.name + ' added to ' + toolComment)
+                    for sourceToolPreset in sourceTool.presets:
+                        for targetToolPreset in targetTool.presets:
+                            if targetToolPreset.name == sourceToolPreset.name:
+                                for parameter in sourceToolPreset.parameters:
+                                    try:
+                                        targetToolPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
+                                    except:
+                                        futil.log('FAILED TO SET ' + parameter.name + ' FOR ' + toolComment + ' TO ' + str(sourceToolPreset.parameters.itemByName(parameter.name).value.value))
+                                        pass
+                    futil.log(toolComment + ' PRESETS COMPLETE')
                     if syncDirection_type == 'Pull': #update tools in doc one at a time
                         cam.documentToolLibrary.update(targetTool, True)
     if syncDirection_type == 'Push': #update library all at once at end
