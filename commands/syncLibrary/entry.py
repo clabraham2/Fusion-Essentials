@@ -51,7 +51,7 @@ def stop():
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     # General logging for debug.
-    # futil.log(f'{CMD_NAME} Command Created Event')
+    futil.log(f'{CMD_NAME} Command Created Event')
     futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
     futil.add_handler(args.command.destroy, command_destroy, local_handlers=local_handlers)
 
@@ -112,8 +112,11 @@ def command_execute(args: adsk.core.CommandEventArgs):
                         try:
                             targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
                         except:
+                            futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + toolComment + ' TO ' + sourceTool.parameters.itemByName(toolParameter.name).value.value)
+                            futil.log(targetTool.parameters.itemByName(toolParameter.name).value.value)
+                            futil.log(sourceTool.parameters.itemByName(toolParameter.name).value.value)
                             pass
-                    futil.log(toolComment + ' parameters synced')
+                    futil.log(toolComment + ' COMPLETE')
                     for sourceToolPreset in sourceTool.presets:
                         if not targetTool.presets.itemsByName(sourceToolPreset.name):
                             newPreset = targetTool.presets.add()
@@ -132,7 +135,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
 def command_destroy(args: adsk.core.CommandEventArgs):
     global local_handlers
     local_handlers = []
-    # futil.log(f'{CMD_NAME} Command Destroy Event')
+    futil.log(f'{CMD_NAME} Command Destroy Event')
 
 def get_tooling_libraries() -> List:
     # Get the list of tooling libraries
