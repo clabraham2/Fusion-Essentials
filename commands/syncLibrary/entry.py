@@ -113,8 +113,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
                             targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
                         except:
                             futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + toolComment + ' TO ' + sourceTool.parameters.itemByName(toolParameter.name).value.value)
-                            futil.log(targetTool.parameters.itemByName(toolParameter.name).value.value)
-                            futil.log(sourceTool.parameters.itemByName(toolParameter.name).value.value)
                             pass
                     futil.log(toolComment + ' COMPLETE')
                     for sourceToolPreset in sourceTool.presets:
