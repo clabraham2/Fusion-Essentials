@@ -51,26 +51,16 @@ def stop():
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     # General logging for debug.
-    futil.log(f'{CMD_NAME} Command Created Event')
+    # futil.log(f'{CMD_NAME} Command Created Event')
     futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
     futil.add_handler(args.command.destroy, command_destroy, local_handlers=local_handlers)
 
     inputs = args.command.commandInputs
 
-    # Select the setup/s to be relinked
-    # setup_input = inputs.addSelectionInput('setups', 'Operation(s) to Update', 'Select the setups, operations, or folders that you would like relinked.')
-    # setup_input.setSelectionLimits(1, 0)
-
     # Make a drop down for sync direction
-    # correlation_input = inputs.addDropDownCommandInput('syncDirection', 'Sync Direction', adsk.core.DropDownStyles.TextListDropDownStyle)
-    # correlation_input.listItems.add('Pull', True)
-    # correlation_input.listItems.add('Push', False)
-
-    # Make a drop down for correlation type
-    correlation_input = inputs.addDropDownCommandInput('correlation', 'Correlation Type', adsk.core.DropDownStyles.TextListDropDownStyle)
-    correlation_input.listItems.add('Description', True)
-    correlation_input.listItems.add('Product ID', False)
-    correlation_input.listItems.add('Geometry', False)
+    syncDirection_input = inputs.addDropDownCommandInput('syncDirection', 'Sync Direction', adsk.core.DropDownStyles.TextListDropDownStyle)
+    syncDirection_input.listItems.add('Pull', True)
+    syncDirection_input.listItems.add('Push', False)
 
     # Option to select which tooling library to use
     library_input = inputs.addDropDownCommandInput('library', 'Library', adsk.core.DropDownStyles.TextListDropDownStyle)
@@ -82,16 +72,16 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     for library in formatted_libraries:
         library_input.listItems.add(library, True)
     # print them to the console for debug
-    futil.log(f'Available libraries: {libraries}')
+    # futil.log(f'Available libraries: {libraries}')
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
     # General logging for debug
     cam = adsk.cam.CAM.cast(app.activeProduct)
     inputs = args.command.commandInputs
-    setup_input: adsk.core.SelectionCommandInput = inputs.itemById('setups')
-    correlation_input: adsk.core.DropDownCommandInput = inputs.itemById('correlation')
-    correlation_type = correlation_input.selectedItem.name
+    syncDirection_input: adsk.core.DropDownCommandInput = inputs.itemById('syncDirection')
+    syncDirection_type = syncDirection_input.selectedItem.name
+    # futil.log(str(syncDirection_type))
     library_input: adsk.core.DropDownCommandInput = inputs.itemById('library')
     camManager = adsk.cam.CAMManager.get()
     libraryManager = camManager.libraryManager
@@ -101,33 +91,69 @@ def command_execute(args: adsk.core.CommandEventArgs):
     library_index = formatted_libraries.index(library_input.selectedItem.name)
     library_url = adsk.core.URL.create(libraries[library_index])
     library = toolLibraries.toolLibraryAtURL(library_url)
-    operations: List[adsk.cam.Operation] = []
 
     sourceTool = None
-    updatedToolCount = 0
             
     # load tool library
     toolLibrary = library
-    
-    for targetTool in cam.documentToolLibrary:
-        toolComment = targetTool.parameters.itemByName('tool_comment').value.value
-        for sourceTool in toolLibrary:
-            if toolComment in sourceTool.parameters.itemByName('tool_comment').value.value:
-                for toolParameter in targetTool.parameters:
-                    # if toolParameter.name in parametersToUpdate:
-                    try:
-                        targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
-                    except:
-                        pass
-                cam.documentToolLibrary.update(targetTool, True)
-                updatedToolCount = updatedToolCount + 1
-    ui.messageBox(str(updatedToolCount) + ' tools updated.')
+
+    if syncDirection_type == 'Pull':
+        for targetTool in cam.documentToolLibrary:
+            toolComment = targetTool.parameters.itemByName('tool_comment').value.value
+            for sourceTool in toolLibrary:
+                if toolComment == sourceTool.parameters.itemByName('tool_comment').value.value:
+                    for toolParameter in targetTool.parameters:
+                        if toolParameter.name == 'tool_assemblyGaugeLength':
+                            continue
+                        # futil.log(toolParameter.name)
+                        # if toolParameter.name in parametersToUpdate:
+                        try:
+                            targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
+                        except:
+                            pass
+                    futil.log(toolComment + ' parameters synced')
+                    # for sourceToolPreset in sourceTool.presets:
+                    #     matches = targetTool.presets.itemsByName(sourceToolPreset.name)
+                    #     if not matches:
+                    #         newPreset = targetTool.presets.add()
+                    #         newPreset.name = sourceToolPreset.name
+                    #         for parameter in sourceToolPreset.parameters:
+                    #             newPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
+                    #         futil.log(sourceToolPreset.name + ' added to document tool')
+                    cam.documentToolLibrary.update(targetTool, True)
+        ui.messageBox(' See log for list of updated tools.')
+
+    if syncDirection_type == 'Push':
+        for targetTool in toolLibrary:
+            toolComment == targetTool.parameters.itemByName('tool_comment').value.value
+            for sourceTool in cam.documentToolLibrary:
+                if toolComment in sourceTool.parameters.itemByName('tool_comment').value.value:
+                    for toolParameter in targetTool.parameters:
+                        if toolParameter.name == 'tool_assemblyGaugeLength':
+                            continue
+                        # futil.log(toolParameter.name)
+                        # if toolParameter.name in parametersToUpdate:
+                        try:
+                            targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
+                        except:
+                            pass
+                    futil.log(toolComment + ' parameters synced')
+                    # for sourceToolPreset in sourceTool.presets:
+                    #     matches = targetTool.presets.itemsByName(sourceToolPreset.name)
+                    #     if not matches:
+                    #         newPreset = targetTool.presets.add()
+                    #         newPreset.name = sourceToolPreset.name
+                    #         for parameter in sourceToolPreset.parameters:
+                    #             newPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
+                    #         futil.log(sourceToolPreset.name + ' added to library tool')
+        toolLibraries.updateToolLibrary(library_url, toolLibrary)
+        ui.messageBox(' See log for list of updated tools.')
 
 # This event handler is called when the command terminates.
 def command_destroy(args: adsk.core.CommandEventArgs):
     global local_handlers
     local_handlers = []
-    futil.log(f'{CMD_NAME} Command Destroy Event')
+    # futil.log(f'{CMD_NAME} Command Destroy Event')
 
 def get_tooling_libraries() -> List:
     # Get the list of tooling libraries
