@@ -115,8 +115,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
                             pass
                     futil.log(toolComment + ' parameters synced')
                     for sourceToolPreset in sourceTool.presets:
-                        matches = targetTool.presets.itemsByName(sourceToolPreset.name)
-                        if not matches:
+                        if not targetTool.presets.itemsByName(sourceToolPreset.name):
                             newPreset = targetTool.presets.add()
                             newPreset.name = sourceToolPreset.name
                             for parameter in sourceToolPreset.parameters:
