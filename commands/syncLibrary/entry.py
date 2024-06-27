@@ -92,62 +92,42 @@ def command_execute(args: adsk.core.CommandEventArgs):
     library_url = adsk.core.URL.create(libraries[library_index])
     library = toolLibraries.toolLibraryAtURL(library_url)
 
-    sourceTool = None
-            
-    # load tool library
-    toolLibrary = library
+    # sourceTool = None
 
     if syncDirection_type == 'Pull':
-        for targetTool in cam.documentToolLibrary:
+        sourceLibrary = library
+        targetLibrary = cam.documentToolLibrary
+    if syncDirection_type == 'Push':
+        sourceLibrary = cam.documentToolLibrary
+        targetLibrary = library
+
+    for targetTool in targetLibrary:
+            #naive matching - support more options and detect multiple matches
             toolComment = targetTool.parameters.itemByName('tool_comment').value.value
-            for sourceTool in toolLibrary:
+            for sourceTool in sourceLibrary:
                 if toolComment == sourceTool.parameters.itemByName('tool_comment').value.value:
                     for toolParameter in targetTool.parameters:
-                        if toolParameter.name == 'tool_assemblyGaugeLength':
+                        if toolParameter.name == 'tool_assemblyGaugeLength': #best to just update body length
                             continue
-                        # futil.log(toolParameter.name)
-                        # if toolParameter.name in parametersToUpdate:
                         try:
                             targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
                         except:
                             pass
                     futil.log(toolComment + ' parameters synced')
-                    # for sourceToolPreset in sourceTool.presets:
-                    #     matches = targetTool.presets.itemsByName(sourceToolPreset.name)
-                    #     if not matches:
-                    #         newPreset = targetTool.presets.add()
-                    #         newPreset.name = sourceToolPreset.name
-                    #         for parameter in sourceToolPreset.parameters:
-                    #             newPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
-                    #         futil.log(sourceToolPreset.name + ' added to document tool')
-                    cam.documentToolLibrary.update(targetTool, True)
-        ui.messageBox(' See log for list of updated tools.')
+                    for sourceToolPreset in sourceTool.presets:
+                        matches = targetTool.presets.itemsByName(sourceToolPreset.name)
+                        if not matches:
+                            newPreset = targetTool.presets.add()
+                            newPreset.name = sourceToolPreset.name
+                            for parameter in sourceToolPreset.parameters:
+                                newPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
+                            futil.log(sourceToolPreset.name + ' added to ' + toolComment)
+                    if syncDirection_type == 'Pull': #update tools in doc one at a time
+                        cam.documentToolLibrary.update(targetTool, True)
+    if syncDirection_type == 'Push': #update library all at once at end
+        toolLibraries.updateToolLibrary(library_url, library)
 
-    if syncDirection_type == 'Push':
-        for targetTool in toolLibrary:
-            toolComment == targetTool.parameters.itemByName('tool_comment').value.value
-            for sourceTool in cam.documentToolLibrary:
-                if toolComment in sourceTool.parameters.itemByName('tool_comment').value.value:
-                    for toolParameter in targetTool.parameters:
-                        if toolParameter.name == 'tool_assemblyGaugeLength':
-                            continue
-                        # futil.log(toolParameter.name)
-                        # if toolParameter.name in parametersToUpdate:
-                        try:
-                            targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
-                        except:
-                            pass
-                    futil.log(toolComment + ' parameters synced')
-                    # for sourceToolPreset in sourceTool.presets:
-                    #     matches = targetTool.presets.itemsByName(sourceToolPreset.name)
-                    #     if not matches:
-                    #         newPreset = targetTool.presets.add()
-                    #         newPreset.name = sourceToolPreset.name
-                    #         for parameter in sourceToolPreset.parameters:
-                    #             newPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
-                    #         futil.log(sourceToolPreset.name + ' added to library tool')
-        toolLibraries.updateToolLibrary(library_url, toolLibrary)
-        ui.messageBox(' See log for list of updated tools.')
+    ui.messageBox(' See log for list of updated tools.')
 
 # This event handler is called when the command terminates.
 def command_destroy(args: adsk.core.CommandEventArgs):
