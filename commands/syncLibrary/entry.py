@@ -13,9 +13,9 @@ from hashlib import sha256
 app = adsk.core.Application.get()
 ui: adsk.core.UserInterface = app.userInterface
 
-CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_Sync_Library'
-CMD_NAME = 'Sync Library'
-CMD_Description = 'Sync Library'
+CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_Sync_Tools_with_Library'
+CMD_NAME = 'Sync Tools with Library'
+CMD_Description = 'Sync Tools with Library'
 IS_PROMOTED = True
 
 WORKSPACE_ID = 'CAMEnvironment'
@@ -115,7 +115,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
                         except:
                             futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + toolComment + ' TO ' + sourceTool.parameters.itemByName(toolParameter.name).value.value)
                             pass
-                    futil.log(toolComment + ' PARAMETERS COMPLETE')
+                    # futil.log(toolComment + ' PARAMETERS COMPLETE')
                     for sourceToolPreset in sourceTool.presets:
                         if not targetTool.presets.itemsByName(sourceToolPreset.name):
                             newPreset = targetTool.presets.add()
@@ -132,7 +132,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
                                     except:
                                         futil.log('FAILED TO SET ' + parameter.name + ' FOR ' + toolComment + ' TO ' + str(sourceToolPreset.parameters.itemByName(parameter.name).value.value))
                                         pass
-                    futil.log(toolComment + ' PRESETS COMPLETE')
+                    # futil.log(toolComment + ' PRESETS COMPLETE')
                     if syncDirection_type == 'Pull': #update tools in doc one at a time
                         cam.documentToolLibrary.update(targetTool, True)
     if syncDirection_type == 'Push': #update library all at once at end
