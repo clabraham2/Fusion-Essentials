@@ -1,14 +1,14 @@
-import json
+# import json
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import os
 from ...lib import fusion360utils as futil
 from ... import config
-import time
-import random
+# import time
+# import random
 from typing import List, Dict
-import math
+# import math
 from adsk.cam import ToolLibrary, Tool, DocumentToolLibrary
-from hashlib import sha256
+# from hashlib import sha256
 
 app = adsk.core.Application.get()
 ui: adsk.core.UserInterface = app.userInterface
@@ -57,11 +57,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
     inputs = args.command.commandInputs
 
-    # Make a drop down for sync direction
-    syncDirection_input = inputs.addDropDownCommandInput('syncDirection', 'Sync Direction', adsk.core.DropDownStyles.TextListDropDownStyle)
-    syncDirection_input.listItems.add('Pull', True)
-    syncDirection_input.listItems.add('Push', False)
-
     # Option to select which tooling library to use
     library_input = inputs.addDropDownCommandInput('library', 'Library', adsk.core.DropDownStyles.TextListDropDownStyle)
     # Get the list of tooling libraries
@@ -74,11 +69,26 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # print them to the console for debug
     # futil.log(f'Available libraries: {libraries}')
 
+    # Make a drop down for correlation type
+    correlation_input = inputs.addDropDownCommandInput('correlation', 'Correlation Type', adsk.core.DropDownStyles.TextListDropDownStyle)
+    correlation_input.listItems.add('Tool Number', True)
+    correlation_input.listItems.add('Comment', False)
+    correlation_input.listItems.add('Product ID', False)
+    correlation_input.listItems.add('Description', False)
+    correlation_input.listItems.add('Geometry', False)
+
+    # Make a drop down for sync direction
+    syncDirection_input = inputs.addDropDownCommandInput('syncDirection', 'Sync Direction', adsk.core.DropDownStyles.TextListDropDownStyle)
+    syncDirection_input.listItems.add('Pull', True)
+    syncDirection_input.listItems.add('Push', False)
+
 
 def command_execute(args: adsk.core.CommandEventArgs):
     # General logging for debug
     cam = adsk.cam.CAM.cast(app.activeProduct)
     inputs = args.command.commandInputs
+    correlation_input: adsk.core.DropDownCommandInput = inputs.itemById('correlation')
+    correlation_type = correlation_input.selectedItem.name
     syncDirection_input: adsk.core.DropDownCommandInput = inputs.itemById('syncDirection')
     syncDirection_type = syncDirection_input.selectedItem.name
     # futil.log(str(syncDirection_type))
@@ -92,7 +102,16 @@ def command_execute(args: adsk.core.CommandEventArgs):
     library_url = adsk.core.URL.create(libraries[library_index])
     library = toolLibraries.toolLibraryAtURL(library_url)
 
-    # sourceTool = None
+    correlationParameter = ''
+    match correlation_type:
+        case 'Comment':
+            correlationParameter = 'tool_comment'
+        case 'Product ID':
+            correlationParameter = 'tool_productId'
+        case 'Description':
+            correlationParameter = 'tool_description'
+        case 'Tool Number':
+            correlationParameter = 'tool_number'
 
     if syncDirection_type == 'Pull':
         sourceLibrary = library
@@ -103,13 +122,10 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     for targetTool in targetLibrary:
             #naive matching - support more options and detect multiple matches
-            toolComment = targetTool.parameters.itemByName('tool_comment').value.value
+            toolComment = targetTool.parameters.itemByName(correlationParameter).value.value
             for sourceTool in sourceLibrary:
-                if toolComment == sourceTool.parameters.itemByName('tool_comment').value.value:
+                if toolComment == sourceTool.parameters.itemByName(correlationParameter).value.value:
                     for toolParameter in targetTool.parameters:
-                        skipParameters = [] #'tool_assemblyGaugeLength'
-                        if toolParameter.name in skipParameters :
-                            continue
                         try:
                             targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
                         except:
