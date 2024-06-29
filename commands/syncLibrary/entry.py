@@ -150,7 +150,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
                             # Sets target tool parameter value regardless if same parameter value.
                             targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
                         except:
-                            futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + correlationValue + ' TO ' + str(sourceTool.parameters.itemByName(toolParameter.name).value.value))
+                            futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + str(correlationValue) + ' TO ' + str(sourceTool.parameters.itemByName(toolParameter.name).value.value))
                             pass
 
                     # Set Tool Presets
