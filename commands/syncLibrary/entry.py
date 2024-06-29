@@ -51,7 +51,7 @@ def stop():
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     # General logging for debug.
-    futil.log(f'{CMD_NAME} Command Created Event')
+    futil.log(f'\n>>>>>>>>>>{CMD_NAME} Command Created Event')
     futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
     futil.add_handler(args.command.destroy, command_destroy, local_handlers=local_handlers)
 
@@ -120,25 +120,47 @@ def command_execute(args: adsk.core.CommandEventArgs):
         sourceLibrary = cam.documentToolLibrary
         targetLibrary = library
 
+    buttonClicked = ui.messageBox(f'Synchronization will proceed with the following settings: \nCorrelation: {correlation_type}\nLibrary: {formatted_libraries[library_index]}\nDirection: {syncDirection_type}', "Verify Synchronization Settings",1,2)
+    #0 OK, -1 Error, 1 Cancel, 2 Yes or Retry, 3 No
+    match buttonClicked:
+        case 0:
+            pass
+        case 1:
+            return
+
     for targetTool in targetLibrary:
             #naive matching - support more options and detect multiple matches
-            toolComment = targetTool.parameters.itemByName(correlationParameter).value.value
+            correlationValue = targetTool.parameters.itemByName(correlationParameter).value.value
             for sourceTool in sourceLibrary:
-                if toolComment == sourceTool.parameters.itemByName(correlationParameter).value.value:
+                if correlationValue == sourceTool.parameters.itemByName(correlationParameter).value.value:
+                    # Set Tool Parameters
                     for toolParameter in targetTool.parameters:
                         try:
+                            # Float error causes high sensitivty in "differences" that are insignificant, filter by rounding and comparing string
+                            sourceValue = sourceTool.parameters.itemByName(toolParameter.name).value.value
+                            targetValue = targetTool.parameters.itemByName(toolParameter.name).value.value
+                            try:
+                                sourceValue = round(sourceValue,5)
+                                targetValue = round(targetValue,5)
+                            except:
+                                pass
+                            if str(targetValue) != str(sourceValue):
+                                futil.log(str(correlationValue) + ' ' + str(toolParameter.name) + ' ' + str(targetValue) + ' -> ' + str(sourceValue))
+                            
+                            # Sets target tool parameter value regardless if same parameter value.
                             targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
                         except:
-                            futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + toolComment + ' TO ' + sourceTool.parameters.itemByName(toolParameter.name).value.value)
+                            futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + correlationValue + ' TO ' + str(sourceTool.parameters.itemByName(toolParameter.name).value.value))
                             pass
-                    # futil.log(toolComment + ' PARAMETERS COMPLETE')
+
+                    # Set Tool Presets
                     for sourceToolPreset in sourceTool.presets:
                         if not targetTool.presets.itemsByName(sourceToolPreset.name):
                             newPreset = targetTool.presets.add()
                             newPreset.name = sourceToolPreset.name
                             for parameter in sourceToolPreset.parameters:
                                 newPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
-                            futil.log(sourceToolPreset.name + ' added to ' + toolComment)
+                            futil.log(sourceToolPreset.name + ' added to ' + str(correlationValue))
                     for sourceToolPreset in sourceTool.presets:
                         for targetToolPreset in targetTool.presets:
                             if targetToolPreset.name == sourceToolPreset.name:
@@ -146,21 +168,21 @@ def command_execute(args: adsk.core.CommandEventArgs):
                                     try:
                                         targetToolPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
                                     except:
-                                        futil.log('FAILED TO SET ' + parameter.name + ' FOR ' + toolComment + ' TO ' + str(sourceToolPreset.parameters.itemByName(parameter.name).value.value))
+                                        futil.log('FAILED TO SET ' + parameter.name + ' FOR ' + correlationValue + ' TO ' + str(sourceToolPreset.parameters.itemByName(parameter.name).value.value))
                                         pass
-                    # futil.log(toolComment + ' PRESETS COMPLETE')
+
                     if syncDirection_type == 'Pull': #update tools in doc one at a time
                         cam.documentToolLibrary.update(targetTool, True)
     if syncDirection_type == 'Push': #update library all at once at end
         toolLibraries.updateToolLibrary(library_url, library)
 
-    ui.messageBox(' See log for list of updated tools.')
+    # ui.messageBox(' See log for list of updated tools.')
 
 # This event handler is called when the command terminates.
 def command_destroy(args: adsk.core.CommandEventArgs):
     global local_handlers
     local_handlers = []
-    futil.log(f'{CMD_NAME} Command Destroy Event')
+    futil.log(f'<<<<<<<<<<{CMD_NAME} Command Destroy Event')
 
 def get_tooling_libraries() -> List:
     # Get the list of tooling libraries
