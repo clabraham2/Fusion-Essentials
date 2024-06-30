@@ -80,7 +80,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # Make a drop down for sync direction
     syncDirection_input = inputs.addDropDownCommandInput('syncDirection', 'Sync Direction', adsk.core.DropDownStyles.TextListDropDownStyle)
     syncDirection_input.listItems.add('Pull', True)
+    syncDirection_input.listItems.add('Pull Differences', False)
     syncDirection_input.listItems.add('Push', False)
+    syncDirection_input.listItems.add('Push Differences', False)
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
@@ -113,10 +115,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
         case 'Tool Number':
             correlationParameter = 'tool_number'
 
-    if syncDirection_type == 'Pull':
+    writeToTarget = True
+    if syncDirection_type == 'Pull Differences' or syncDirection_type == 'Push Differences':
+        writeToTarget = False
+
+    if syncDirection_type == 'Pull' or syncDirection_type == 'Pull Differences':
         sourceLibrary = library
         targetLibrary = cam.documentToolLibrary
-    if syncDirection_type == 'Push':
+    if syncDirection_type == 'Push' or syncDirection_type == 'Push Differences':
         sourceLibrary = cam.documentToolLibrary
         targetLibrary = library
 
@@ -148,7 +154,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
                                 futil.log(str(correlationValue) + ' ' + str(toolParameter.name) + ' ' + str(targetValue) + ' -> ' + str(sourceValue))
                             
                             # Sets target tool parameter value regardless if same parameter value.
-                            targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
+                            if writeToTarget:
+                                targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
                         except:
                             futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + str(correlationValue) + ' TO ' + str(sourceTool.parameters.itemByName(toolParameter.name).value.value))
                             pass
@@ -166,7 +173,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
                             if targetToolPreset.name == sourceToolPreset.name:
                                 for parameter in sourceToolPreset.parameters:
                                     try:
-                                        targetToolPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
+                                        if writeToTarget:
+                                            targetToolPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
                                     except:
                                         futil.log('FAILED TO SET ' + parameter.name + ' FOR ' + str(correlationValue) + ' TO ' + str(sourceToolPreset.parameters.itemByName(parameter.name).value.value))
                                         pass
