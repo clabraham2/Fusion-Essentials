@@ -168,7 +168,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
                                     try:
                                         targetToolPreset.parameters.itemByName(parameter.name).value.value = sourceToolPreset.parameters.itemByName(parameter.name).value.value
                                     except:
-                                        futil.log('FAILED TO SET ' + parameter.name + ' FOR ' + correlationValue + ' TO ' + str(sourceToolPreset.parameters.itemByName(parameter.name).value.value))
+                                        futil.log('FAILED TO SET ' + parameter.name + ' FOR ' + str(correlationValue) + ' TO ' + str(sourceToolPreset.parameters.itemByName(parameter.name).value.value))
                                         pass
 
                     if syncDirection_type == 'Pull': #update tools in doc one at a time
