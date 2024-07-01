@@ -140,7 +140,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
             for sourceTool in sourceLibrary:
                 if correlationValue == sourceTool.parameters.itemByName(correlationParameter).value.value:
                     # Set Tool Parameters
-                    for toolParameter in targetTool.parameters:
+                    for toolParameter in sourceTool.parameters:
                         try:
                             # Float error causes high sensitivty in "differences" that are insignificant, filter by rounding and comparing string
                             sourceValue = sourceTool.parameters.itemByName(toolParameter.name).value.value
@@ -156,7 +156,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
                             # Sets target tool parameter value regardless if same parameter value.
                             if writeToTarget:
                                 targetTool.parameters.itemByName(toolParameter.name).value.value = sourceTool.parameters.itemByName(toolParameter.name).value.value
-                        except:
+                        except Exception as error:
+                            futil.log(error)
                             futil.log('FAILED TO SET ' + toolParameter.name + ' FOR ' + str(correlationValue) + ' TO ' + str(sourceTool.parameters.itemByName(toolParameter.name).value.value))
                             pass
 
