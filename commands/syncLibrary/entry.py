@@ -133,6 +133,10 @@ def command_execute(args: adsk.core.CommandEventArgs):
             pass
         case 1:
             return
+        
+    if hasCollision(correlationParameter, sourceLibrary):
+        ui.messageBox(f'Multiple tool instances with the same {correlationParameter} found in the source library.')
+        return
 
     for targetTool in targetLibrary:
             #naive matching - support more options and detect multiple matches
@@ -182,6 +186,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
                     if syncDirection_type == 'Pull': #update tools in doc one at a time
                         cam.documentToolLibrary.update(targetTool, True)
+
     if syncDirection_type == 'Push': #update library all at once at end
         toolLibraries.updateToolLibrary(library_url, library)
 
@@ -192,6 +197,19 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     global local_handlers
     local_handlers = []
     futil.log(f'<<<<<<<<<<{CMD_NAME} Command Destroy Event')
+
+def hasCollision(parameterName, library):
+    valueList = []
+    counter = {}
+    for tool in library:
+        valueList.append(tool.parameters.itemByName(parameterName).value.value)
+    for value in valueList:
+        counter[value] = counter.get(value, 0) + 1
+    for value in list(counter.values()):
+        if value > 1:
+            futil.log(str(counter))
+            return True
+    return False
 
 def get_tooling_libraries() -> List:
     # Get the list of tooling libraries
